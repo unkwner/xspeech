@@ -13,9 +13,6 @@ handler.setFormatter(formatter)
 app=Flask(__name__) #创建1个Flask实例
 
 @app.route('/')
-def cmosasr00_flask():    #视图函数
+def index():    #视图函数
     return render_template('index.html')
-
-if __name__ == '__main__':
-    app.run(host="0.0.0.0",port=80)              #启动socket
 
