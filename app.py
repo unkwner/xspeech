@@ -15,7 +15,7 @@ app=Flask(__name__) #创建1个Flask实例
 @app.route('/')
 def index():    #视图函数
     return render_template('index.html')
-@app.route('/upload')
+@app.route('/upload', methods=['GET','POST'])
 def upload():
     rec = {}
     rec["time"] = str(datetime.datetime.now())
