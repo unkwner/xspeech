@@ -27,13 +27,16 @@
 
 <!-- 【2】构建界面 -->
 <div class="main">
+		<label for="name">识别地址:</label>
+		<input type="text" id="asrurl" name="asrurl" placeholder="默认地址">
 	<div class="mainBox">
 		<!-- 按钮控制区域 -->
 		<div class="pd btns">
 			<button onclick="recStart()">录制</button>
-			<button onclick="recStop()">停止</button>
-			<button onclick="recPlay()">播放</button>
-			<button onclick="recUpload()">开始识别</button>
+			<!--<button onclick="recStop()">停止</button>-->
+			<!--<button onclick="recPlay()">播放</button>-->
+			<button onclick="recStop()">开始识别</button>
+			<a href="javascript:location.reload();">刷新页面</a>
 		</div>
 		
 		<!-- 波形绘制区域 -->
@@ -57,7 +60,7 @@
 
 <!-- 【3】实现录音逻辑 -->
 <script>
-var rec,wave,recBlob;
+var rec,wave,recBlob,asr_url;
 /**调用open打开录音请求好录音权限**/
 var recOpen=function(){//一般在显示出录音按钮或相关的录音界面时进行此方法调用，后面用户点击开始录音时就能畅通无阻了
 	rec=null;
@@ -112,9 +115,10 @@ function recClose(){
 
 /**开始录音**/
 function recStart(){//打开了录音后才能进行start、stop调用
-    if(rec == null){
-        recOpen();
-    }
+	if(rec == null){
+		recOpen();
+		return;
+	}
 	if(rec&&Recorder.IsOpen()){
 		recBlob=null;
 		rec.start();
@@ -152,6 +156,8 @@ function recStop(){
 		
 		recBlob=blob;
 		reclog("已录制mp3："+duration+"ms "+blob.size+"字节，可以点击播放、上传了",2);
+                recPlay();
+                recUpload();
 	},function(msg){
 		reclog("录音失败:"+msg,1);
 	});
@@ -178,7 +184,7 @@ function recPlay(){
 	document.querySelector("."+cls).appendChild(audio);
 	//简单利用URL生成播放地址，注意不用了时需要revokeObjectURL，否则霸占内存
 	audio.src=(window.URL||webkitURL).createObjectURL(recBlob);
-	audio.play();
+	//audio.play();
 	
 	setTimeout(function(){
 		(window.URL||webkitURL).revokeObjectURL(audio.src);
@@ -192,50 +198,53 @@ function recUpload(){
 		reclog("请先录音，然后停止后再上传",1);
 		return;
 	};
+        asr_url = document.getElementById("asrurl").value;
 	
 	//本例子假设使用原始XMLHttpRequest请求方式，实际使用中自行调整为自己的请求方式
 	//录音结束时拿到了blob文件对象，可以用FileReader读取出内容，或者用FormData上传
-	var api="https://asr.unkwner.workers.dev/upload";
+	var api="/upload";
+	var xhr=new XMLHttpRequest();
 	var onreadystatechange=function(title){
 		return function(){
 			if(xhr.readyState==4){
 				if(xhr.status==200){
 					reclog(title+"上传成功",2);
-                                        reclog(xhr.responseText);
+					json_str = JSON.stringify(xhr.response);
+                                        reclog(json_str);
 				}else{
-					reclog(title+"没有完成上传，演示上传地址无需关注上传结果，只要浏览器控制台内Network面板内看到的请求数据结构是预期的就ok了。", "#d8c1a0");
+					reclog(title+"上传失败。", "#d8c1a0");
 					
 					console.error(title+"上传失败",xhr.status,xhr.responseText);
 				};
 			};
 		};
 	};
-	reclog("开始上传到"+api+"，请求稍后...");
-
+	reclog("开始上传到"+asr_url+"，请稍后...");
 	/***方式一：将blob文件转成base64纯文本编码，使用普通application/x-www-form-urlencoded表单上传***/
 	var reader=new FileReader();
 	reader.onloadend=function(){
 		var postData="";
-		postData+="mime="+encodeURIComponent(blob.type);//告诉后端，这个录音是什么格式的，可能前后端都固定的mp3可以不用写
+                postData+="asr_url="+asr_url;
+		postData+="&mime="+encodeURIComponent(blob.type);//告诉后端，这个录音是什么格式的，可能前后端都固定的mp3可以不用写
 		postData+="&upfile_b64="+encodeURIComponent((/.+;\s*base64\s*,\s*(.+)$/i.exec(reader.result)||[])[1]) //录音文件内容，后端进行base64解码成二进制
 		//...其他表单参数
 		
-		var xhr=new XMLHttpRequest();
 		xhr.open("POST", api);
+		xhr.responseType = 'json';
 		xhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
-		xhr.onreadystatechange=onreadystatechange("上传方式一【Base64】");
+		xhr.onreadystatechange=onreadystatechange("【Base64】");
 		xhr.send(postData);
 	};
 	reader.readAsDataURL(blob);
 	/***方式二：使用FormData用multipart/form-data表单上传文件***/
-	var form=new FormData();
-	form.append("upfile",blob,"recorder.mp3"); //和普通form表单并无二致，后端接收到upfile参数的文件，文件名为recorder.mp3
+	//var form=new FormData();
+	//form.append("upfile",blob,"recorder.mp3"); //和普通form表单并无二致，后端接收到upfile参数的文件，文件名为recorder.mp3
 	//...其他表单参数
 	
-	var xhr=new XMLHttpRequest();
-	xhr.open("POST", api);
-	xhr.onreadystatechange=onreadystatechange("上传方式二【FormData】");
-	xhr.send(form);
+	//var xhr=new XMLHttpRequest();
+	//xhr.open("POST", api);
+	//xhr.onreadystatechange=onreadystatechange("上传方式二【FormData】");
+	//xhr.send(form);
 };
 
 
