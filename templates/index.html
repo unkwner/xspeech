@@ -201,6 +201,7 @@ function recUpload(){
 			if(xhr.readyState==4){
 				if(xhr.status==200){
 					reclog(title+"上传成功",2);
+                                        reclog(xhr.responseText);
 				}else{
 					reclog(title+"没有完成上传，演示上传地址无需关注上传结果，只要浏览器控制台内Network面板内看到的请求数据结构是预期的就ok了。", "#d8c1a0");
 					
