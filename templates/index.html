@@ -226,6 +226,15 @@ function recUpload(){
 		xhr.send(postData);
 	};
 	reader.readAsDataURL(blob);
+	/***方式二：使用FormData用multipart/form-data表单上传文件***/
+	var form=new FormData();
+	form.append("upfile",blob,"recorder.mp3"); //和普通form表单并无二致，后端接收到upfile参数的文件，文件名为recorder.mp3
+	//...其他表单参数
+	
+	var xhr=new XMLHttpRequest();
+	xhr.open("POST", api);
+	xhr.onreadystatechange=onreadystatechange("上传方式二【FormData】");
+	xhr.send(form);
 };
 
 
